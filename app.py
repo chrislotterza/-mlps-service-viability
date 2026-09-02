@@ -23,7 +23,7 @@ div[data-testid="stMetric"] {
     padding:18px 22px;
     border-radius:16px;
     margin-bottom:12px;
-    background:linear-gradient(135deg, rgba(32,105,74,.14), rgba(35,94,140,.08));
+    background:#0B4F8A;
     border:1px solid rgba(100,100,100,.18);
 }
 .good {padding:13px 16px;border-radius:12px;background:rgba(25,150,80,.12);border:1px solid rgba(25,150,80,.30);font-weight:700;}
@@ -277,8 +277,8 @@ st.markdown("""
              style="height:68px;max-width:220px;object-fit:contain;">
     </div>
     <div>
-        <h2 style="margin:0">MLPS Service Viability Model</h2>
-        <div class="small">Long Distance Passenger Rail Service decision-support model</div>
+        <h2 style="margin:0;color:white;">MLPS Service Viability Model</h2>
+        <div class="small" style="color:white;">Long Distance Passenger Rail Service decision-support model</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
