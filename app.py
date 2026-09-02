@@ -2,7 +2,7 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="MLPS Service Viability",
+    page_title="PRASA MLPS Service Viability",
     page_icon="🚆",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -63,14 +63,14 @@ SERVICES = {
         access_fee=65, electric_rate=0.0627, diesel_price=26.16, diesel_consumption=4.3,
         loco_maint=12, coach_maint=8, crew=12000, shunting=7500, onboard=45,
         ticketing=2.5, contingency=5.0, loco_lease=750000, route_fixed=450000),
-    "Johannesburg–Durban": dict(distance=688, departures=12, months=12, traction="Electric", locos=1,
+    "Johannesburg–Durban": dict(distance=730, departures=1, months=1, traction="Electric", locos=1,
         economy_coaches=8, sleeper_coaches=4, other_coaches=2, economy_seats=72, sleeper_berths=36,
         economy_mass=44, sleeper_mass=48, other_mass=45, loco_mass=88.9,
         economy_fare=280, sleeper_fare=450, ancillary=35, economy_occ=70, sleeper_occ=60,
         access_fee=65, electric_rate=0.0627, diesel_price=26.16, diesel_consumption=4.3,
         loco_maint=12, coach_maint=8, crew=12000, shunting=7500, onboard=45,
         ticketing=2.5, contingency=5.0, loco_lease=750000, route_fixed=450000),
-    "Bosvelder": dict(distance=732, departures=8, months=12, traction="Electric", locos=1,
+    "Bosvelder": dict(distance=732, departures=1, months=1, traction="Electric", locos=1,
         economy_coaches=6, sleeper_coaches=3, other_coaches=2, economy_seats=72, sleeper_berths=36,
         economy_mass=44, sleeper_mass=48, other_mass=45, loco_mass=88.9,
         economy_fare=260, sleeper_fare=420, ancillary=35, economy_occ=60, sleeper_occ=55,
@@ -173,7 +173,7 @@ st.markdown("""
     </div>
     <div>
         <h2 style="margin:0">MLPS Service Viability Model</h2>
-        <div class="small">Standalone Python version of the Excel break-even model</div>
+        <div class="small">A PRASA LDPT RAIL BREAKEVEN MODEL</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
