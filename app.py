@@ -278,7 +278,7 @@ st.markdown("""
     </div>
     <div>
         <h2 style="margin:0">MLPS Service Viability Model</h2>
-        <div class="small">Standalone Python decision-support model</div>
+        <div class="small">Long Distance Passenger Rail Service decision-support model</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
