@@ -158,8 +158,8 @@ with st.sidebar:
         load_defaults(service)
         st.rerun()
     st.divider()
-    st.caption("Occupancy is entered from 0% to 100%.")
-    st.caption("Scenario Planner.")
+    st.caption("Costing Model")
+    st.caption("LDPT Rail Scenario Planner.")
 
 t1,t2,t3,t4=st.tabs(["🚆 Service & Train","🎟 Fares & Demand","⚡ Access & Traction","🧾 Costs"])
 
