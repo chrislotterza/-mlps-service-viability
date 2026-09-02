@@ -296,10 +296,8 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("Baseline: 1 departure/month and 1 month/year.")
-    st.caption("Economy coach: 66 seats.")
-    st.caption("Sleeper coach: 24 berths.")
-    st.caption("Electric + diesel shares always sum to 100%.")
+    st.caption("Costing Scenario Plan Tool for Long Distance Passenger Rail Transport Services")
+   
 
 t1, t2, t3, t4 = st.tabs([
     "🚆 Service & Train",
