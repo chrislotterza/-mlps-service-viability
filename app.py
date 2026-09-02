@@ -28,36 +28,36 @@ div[data-testid="stMetric"] {
 """, unsafe_allow_html=True)
 
 SERVICES = {
-    "Trans-Karoo": dict(distance=1530, departures=8, months=12, traction="Electric", locos=1,
-        economy_coaches=8, sleeper_coaches=4, other_coaches=2, economy_seats=72, sleeper_berths=36,
+    "Trans-Karoo": dict(distance=1530, departures=1, months=1, traction="Electric", locos=2,
+        economy_coaches=8, sleeper_coaches=4, other_coaches=2, economy_seats=72, sleeper_berths=24,
         economy_mass=44, sleeper_mass=48, other_mass=45, loco_mass=88.9,
         economy_fare=450, sleeper_fare=750, ancillary=35, economy_occ=65, sleeper_occ=60,
         access_fee=65, electric_rate=0.0627, diesel_price=26.16, diesel_consumption=4.3,
-        loco_maint=12, coach_maint=8, crew=12000, shunting=7500, onboard=45,
+        loco_maint=3, coach_maint=3, crew=12000, shunting=7500, onboard=45,
         ticketing=2.5, contingency=5.0, loco_lease=750000, route_fixed=750000),
     "Amatola": dict(distance=1036, departures=8, months=12, traction="Electric", locos=1,
-        economy_coaches=8, sleeper_coaches=4, other_coaches=2, economy_seats=72, sleeper_berths=36,
+        economy_coaches=8, sleeper_coaches=4, other_coaches=2, economy_seats=66, sleeper_berths=24,
         economy_mass=44, sleeper_mass=48, other_mass=45, loco_mass=88.9,
         economy_fare=330, sleeper_fare=500, ancillary=35, economy_occ=65, sleeper_occ=60,
         access_fee=65, electric_rate=0.0627, diesel_price=26.16, diesel_consumption=4.3,
         loco_maint=12, coach_maint=8, crew=12000, shunting=7500, onboard=45,
         ticketing=2.5, contingency=5.0, loco_lease=750000, route_fixed=450000),
-    "Johannesburg–Durban": dict(distance=688, departures=12, months=12, traction="Electric", locos=1,
-        economy_coaches=8, sleeper_coaches=4, other_coaches=2, economy_seats=72, sleeper_berths=36,
+    "Johannesburg–Durban": dict(distance=730, departures=11, months=11, traction="Electric", locos=1,
+        economy_coaches=8, sleeper_coaches=4, other_coaches=2, economy_seats=66, sleeper_berths=24,
         economy_mass=44, sleeper_mass=48, other_mass=45, loco_mass=88.9,
         economy_fare=280, sleeper_fare=450, ancillary=35, economy_occ=70, sleeper_occ=60,
         access_fee=65, electric_rate=0.0627, diesel_price=26.16, diesel_consumption=4.3,
         loco_maint=12, coach_maint=8, crew=12000, shunting=7500, onboard=45,
         ticketing=2.5, contingency=5.0, loco_lease=750000, route_fixed=450000),
     "Bosvelder": dict(distance=732, departures=8, months=12, traction="Electric", locos=1,
-        economy_coaches=6, sleeper_coaches=3, other_coaches=2, economy_seats=72, sleeper_berths=36,
+        economy_coaches=6, sleeper_coaches=3, other_coaches=2, economy_seats=66, sleeper_berths=24,
         economy_mass=44, sleeper_mass=48, other_mass=45, loco_mass=88.9,
         economy_fare=260, sleeper_fare=420, ancillary=35, economy_occ=60, sleeper_occ=55,
         access_fee=50, electric_rate=0.0627, diesel_price=26.16, diesel_consumption=4.3,
         loco_maint=12, coach_maint=8, crew=12000, shunting=7500, onboard=45,
         ticketing=2.5, contingency=5.0, loco_lease=750000, route_fixed=350000),
     "Custom": dict(distance=500, departures=4, months=12, traction="Diesel", locos=1,
-        economy_coaches=6, sleeper_coaches=2, other_coaches=1, economy_seats=72, sleeper_berths=36,
+        economy_coaches=6, sleeper_coaches=2, other_coaches=1, economy_seats=66, sleeper_berths=24,
         economy_mass=44, sleeper_mass=48, other_mass=45, loco_mass=90,
         economy_fare=250, sleeper_fare=400, ancillary=25, economy_occ=60, sleeper_occ=55,
         access_fee=50, electric_rate=0.0627, diesel_price=26.16, diesel_consumption=4.3,
@@ -143,7 +143,7 @@ alt="PRASA logo" style="height:68px;max-width:220px;object-fit:contain;">
 </div>
 <div>
 <h2 style="margin:0">MLPS Service Viability Model</h2>
-<div class="small">Standalone Python decision-support model</div>
+<div class="small">PRASA LDPT Viability Decision Making Model</div>
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -159,7 +159,7 @@ with st.sidebar:
         st.rerun()
     st.divider()
     st.caption("Occupancy is entered from 0% to 100%.")
-    st.caption("This version does not require Excel.")
+    st.caption("Scenario Planner.")
 
 t1,t2,t3,t4=st.tabs(["🚆 Service & Train","🎟 Fares & Demand","⚡ Access & Traction","🧾 Costs"])
 
@@ -198,7 +198,7 @@ with t3:
     a,b=st.columns(2)
     with a:
         st.number_input("TRIM access fee (R/train-km)",min_value=0.0,step=1.0,key="access_fee")
-        st.number_input("Electric traction rate (R/GTK)",min_value=0.0,step=0.001,format="%.4f",key="electric_rate")
+        st.number_input("Electric traction rate (R/GTK)",min_value=0.0,step=0.01,format="%.4f",key="electric_rate")
     with b:
         st.number_input("Diesel price (R/litre)",min_value=0.0,step=0.10,key="diesel_price")
         st.number_input("Diesel consumption (L/loco-km)",min_value=0.0,step=0.1,key="diesel_consumption")
