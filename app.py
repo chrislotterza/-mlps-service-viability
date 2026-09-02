@@ -35,11 +35,7 @@ div[data-testid="stMetric"] {
 
 # -------------------------------------------------------------------
 # WORKING SERVICE DEFAULTS
-# - Economy coach: 66 seats
-# - Sleeper coach: 24 berths
-# - Baseline operation: 1 departure/month, 1 month/year
-# - Johannesburg–Durban distance: 730 km
-# - Electric share is editable; diesel = 100% - electric share
+# Scenario Planning Model for Long Distance Passenger Transport based on Costing
 # -------------------------------------------------------------------
 SERVICES = {
     "Trans-Karoo": dict(
