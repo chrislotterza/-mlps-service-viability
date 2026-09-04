@@ -33,7 +33,7 @@ div[data-testid="stMetric"] {
 .good {padding:13px 16px;border-radius:12px;background:rgba(25,150,80,.12);border:1px solid rgba(25,150,80,.30);font-weight:700;}
 .warn {padding:13px 16px;border-radius:12px;background:rgba(230,165,30,.13);border:1px solid rgba(230,165,30,.32);font-weight:700;}
 .bad {padding:13px 16px;border-radius:12px;background:rgba(210,60,60,.12);border:1px solid rgba(210,60,60,.30);font-weight:700;}
-.small {opacity:.72;font-size:.88rem;}
+.small {opacity:.32;font-size:.88rem;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -414,7 +414,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("Scenario")
+    st.header("Scenario Planner")
     service = st.selectbox("Service", list(SERVICES), index=2)
 
     if st.session_state.get("_loaded_service") != service:
@@ -426,7 +426,7 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("All models are wrong, but some are useful - george Box")
+    st.caption("All models are wrong, but some are useful - George Box")
     st.caption("Please check your assumptions")
 
 # Seed any newly introduced economic-impact keys without overwriting the user's
