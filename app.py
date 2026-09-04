@@ -23,7 +23,7 @@ div[data-testid="stMetric"] {
     padding:18px 22px;
     border-radius:16px;
     margin-bottom:12px;
-    background:#0B4F8A;
+    background:linear-gradient(135deg, rgba(32,105,74,.14), rgba(35,94,140,.08));
     border:1px solid rgba(100,100,100,.18);
 }
 .good {padding:13px 16px;border-radius:12px;background:rgba(25,150,80,.12);border:1px solid rgba(25,150,80,.30);font-weight:700;}
@@ -35,7 +35,11 @@ div[data-testid="stMetric"] {
 
 # -------------------------------------------------------------------
 # WORKING SERVICE DEFAULTS
-# Scenario Planning Model for Long Distance Passenger Transport based on Costing
+# - Economy coach: 66 seats
+# - Sleeper coach: 24 berths
+# - Baseline operation: 1 departure/month, 1 month/year
+# - Johannesburg–Durban distance: 730 km
+# - Electric share is editable; diesel = 100% - electric share
 # -------------------------------------------------------------------
 SERVICES = {
     "Trans-Karoo": dict(
@@ -103,6 +107,48 @@ SERVICES = {
         onboard=45, ticketing=2.5, contingency=5.0,
         loco_lease=750000, route_fixed=250000
     ),
+}
+
+# -------------------------------------------------------------------
+# ECONOMIC IMPACT DEFAULTS
+# These are editable planning assumptions, not certified emissions factors.
+# Road-mode emissions are calculated from fuel use; rail emissions use the
+# selected traction mix. Wider economic activity is kept separate from
+# incremental passenger/carbon benefits to avoid double counting.
+# -------------------------------------------------------------------
+ECON_DEFAULTS = {
+    "alternative_mode": "Intercity coach",
+    "alt_fare_coach": 650.0,
+    "alt_transfer_coach": 50.0,
+    "alt_fare_minibus": 800.0,
+    "alt_transfer_minibus": 40.0,
+    "alt_fare_car": 900.0,
+    "alt_transfer_car": 0.0,
+    "alt_fare_air": 1400.0,
+    "alt_transfer_air": 250.0,
+    "alt_fare_custom": 650.0,
+    "alt_transfer_custom": 0.0,
+
+    # Emissions / vehicle assumptions
+    "diesel_co2_per_litre": 2.68,
+    "grid_co2_per_kwh": 0.85,
+    "electric_kwh_per_train_km": 18.0,
+    "coach_capacity": 60,
+    "coach_occ": 70,
+    "coach_l100km": 30.0,
+    "minibus_capacity": 15,
+    "minibus_occ": 80,
+    "minibus_l100km": 12.0,
+    "car_capacity": 5,
+    "car_occ": 40,
+    "car_l100km": 8.0,
+    "air_co2_per_pax_km": 0.15,
+    "custom_co2_per_pax_km": 0.08,
+    "carbon_value": 1200.0,
+
+    # Wider economic activity assumptions
+    "associated_spend_per_pax": 750.0,
+    "economic_multiplier": 1.40,
 }
 
 def money(x): return f"R {x:,.0f}"
@@ -202,15 +248,85 @@ def calculate(d):
 
     current_occ = passengers / sellable_capacity if sellable_capacity else 0
 
+    # ---------------------------------------------------------------
+    # ECONOMIC IMPACT
+    # ---------------------------------------------------------------
+    avg_ticket_fare = passenger_revenue / passengers if passengers else 0
+    alt_mode = d.get("alternative_mode", "Intercity coach")
+
+    alt_cost_map = {
+        "Intercity coach": (d.get("alt_fare_coach", 0), d.get("alt_transfer_coach", 0)),
+        "Minibus taxi": (d.get("alt_fare_minibus", 0), d.get("alt_transfer_minibus", 0)),
+        "Private car": (d.get("alt_fare_car", 0), d.get("alt_transfer_car", 0)),
+        "Air": (d.get("alt_fare_air", 0), d.get("alt_transfer_air", 0)),
+        "Custom": (d.get("alt_fare_custom", 0), d.get("alt_transfer_custom", 0)),
+    }
+    alt_base_cost, alt_transfer_cost = alt_cost_map.get(alt_mode, (0, 0))
+    alternative_cost_per_pax = alt_base_cost + alt_transfer_cost
+    passenger_saving_per_pax = alternative_cost_per_pax - avg_ticket_fare
+    passenger_financial_benefit = passenger_saving_per_pax * passengers
+
+    diesel_litres = diesel_km * d["locos"] * d["diesel_consumption"]
+    train_diesel_co2_kg = diesel_litres * d.get("diesel_co2_per_litre", 2.68)
+    train_electric_kwh = electric_km * d.get("electric_kwh_per_train_km", 18.0)
+    train_electric_co2_kg = train_electric_kwh * d.get("grid_co2_per_kwh", 0.85)
+    train_co2_kg = train_diesel_co2_kg + train_electric_co2_kg
+    train_co2_per_pax_km = train_co2_kg / (passengers * d["distance"]) if passengers and d["distance"] else 0
+
+    if alt_mode == "Intercity coach":
+        effective_capacity = d.get("coach_capacity", 60) * d.get("coach_occ", 70) / 100
+        alt_vehicles = passengers / effective_capacity if effective_capacity else 0
+        alt_fuel_litres = alt_vehicles * d["distance"] * d.get("coach_l100km", 30.0) / 100
+        alternative_co2_kg = alt_fuel_litres * d.get("diesel_co2_per_litre", 2.68)
+    elif alt_mode == "Minibus taxi":
+        effective_capacity = d.get("minibus_capacity", 15) * d.get("minibus_occ", 80) / 100
+        alt_vehicles = passengers / effective_capacity if effective_capacity else 0
+        alt_fuel_litres = alt_vehicles * d["distance"] * d.get("minibus_l100km", 12.0) / 100
+        alternative_co2_kg = alt_fuel_litres * d.get("diesel_co2_per_litre", 2.68)
+    elif alt_mode == "Private car":
+        effective_capacity = d.get("car_capacity", 5) * d.get("car_occ", 40) / 100
+        alt_vehicles = passengers / effective_capacity if effective_capacity else 0
+        alt_fuel_litres = alt_vehicles * d["distance"] * d.get("car_l100km", 8.0) / 100
+        alternative_co2_kg = alt_fuel_litres * d.get("diesel_co2_per_litre", 2.68)
+    elif alt_mode == "Air":
+        alt_vehicles = 0
+        alt_fuel_litres = 0
+        alternative_co2_kg = passengers * d["distance"] * d.get("air_co2_per_pax_km", 0.15)
+    else:
+        alt_vehicles = 0
+        alt_fuel_litres = 0
+        alternative_co2_kg = passengers * d["distance"] * d.get("custom_co2_per_pax_km", 0.08)
+
+    alternative_co2_per_pax_km = alternative_co2_kg / (passengers * d["distance"]) if passengers and d["distance"] else 0
+    co2_saving_kg = alternative_co2_kg - train_co2_kg
+    co2_saving_tonnes = co2_saving_kg / 1000
+    emissions_reduction = co2_saving_kg / alternative_co2_kg if alternative_co2_kg else 0
+    carbon_benefit = co2_saving_tonnes * d.get("carbon_value", 0)
+
+    measurable_incremental_benefit = passenger_financial_benefit + carbon_benefit
+    operating_support = max(0, -contribution)
+    economic_benefit_per_support = (
+        measurable_incremental_benefit / operating_support if operating_support > 0 else None
+    )
+
+    direct_economic_activity = passengers * d.get("associated_spend_per_pax", 0)
+    total_economic_activity = direct_economic_activity * d.get("economic_multiplier", 1.0)
+    multiplier_effect = total_economic_activity - direct_economic_activity
+    activity_per_support = total_economic_activity / operating_support if operating_support > 0 else None
+
     return locals()
 
 def load_defaults(service):
     for k, v in SERVICES[service].items():
         st.session_state[k] = v
+    for k, v in ECON_DEFAULTS.items():
+        st.session_state[k] = v
     st.session_state["_loaded_service"] = service
 
 def current_inputs(service):
-    return {k: st.session_state[k] for k in SERVICES[service].keys()}
+    values = {k: st.session_state[k] for k in SERVICES[service].keys()}
+    values.update({k: st.session_state[k] for k in ECON_DEFAULTS.keys()})
+    return values
 
 def sensitivity_table(base):
     base_r = calculate(base)
@@ -277,8 +393,8 @@ st.markdown("""
              style="height:68px;max-width:220px;object-fit:contain;">
     </div>
     <div>
-        <h2 style="margin:0;color:white;">MLPS Service Viability Model</h2>
-        <div class="small" style="color:white;">Long Distance Passenger Rail Service decision-support model</div>
+        <h2 style="margin:0">MLPS Service Viability Model</h2>
+        <div class="small">Standalone Python decision-support model</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -296,14 +412,17 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("Costing Scenario Plan Tool for Long Distance Passenger Rail Transport Services")
-   
+    st.caption("Baseline: 1 departure/month and 1 month/year.")
+    st.caption("Economy coach: 66 seats.")
+    st.caption("Sleeper coach: 24 berths.")
+    st.caption("Electric + diesel shares always sum to 100%.")
 
-t1, t2, t3, t4 = st.tabs([
+t1, t2, t3, t4, t5 = st.tabs([
     "🚆 Service & Train",
     "🎟 Fares & Demand",
     "⚡ Traction & Access",
-    "🧾 Costs"
+    "🧾 Costs",
+    "🌍 Economic Impact"
 ])
 
 with t1:
@@ -383,6 +502,83 @@ with t4:
         st.number_input("Locomotive lease / hire (R/month)", min_value=0.0, step=50000.0, key="loco_lease")
         st.number_input("Route / station fixed cost (R/month)", min_value=0.0, step=50000.0, key="route_fixed")
 
+with t5:
+    st.markdown("#### Alternative transport comparison")
+    st.caption(
+        "Compare the same passenger movement with an alternative mode. Financial saving and emissions are "
+        "incremental comparisons; wider economic activity is shown separately to avoid double counting."
+    )
+    st.selectbox(
+        "Alternative mode",
+        ["Intercity coach", "Minibus taxi", "Private car", "Air", "Custom"],
+        key="alternative_mode"
+    )
+
+    mode = st.session_state["alternative_mode"]
+    a, b = st.columns(2)
+    if mode == "Intercity coach":
+        with a:
+            st.number_input("Coach fare / passenger (R)", min_value=0.0, step=25.0, key="alt_fare_coach")
+            st.number_input("Coach capacity", min_value=1, step=1, key="coach_capacity")
+            st.slider("Coach occupancy (%)", 1, 100, step=1, key="coach_occ")
+        with b:
+            st.number_input("Transfers / other passenger cost (R)", min_value=0.0, step=10.0, key="alt_transfer_coach")
+            st.number_input("Coach fuel use (L/100 km)", min_value=0.0, step=1.0, key="coach_l100km")
+    elif mode == "Minibus taxi":
+        with a:
+            st.number_input("Minibus fare / passenger (R)", min_value=0.0, step=25.0, key="alt_fare_minibus")
+            st.number_input("Minibus capacity", min_value=1, step=1, key="minibus_capacity")
+            st.slider("Minibus occupancy (%)", 1, 100, step=1, key="minibus_occ")
+        with b:
+            st.number_input("Transfers / other passenger cost (R)", min_value=0.0, step=10.0, key="alt_transfer_minibus")
+            st.number_input("Minibus fuel use (L/100 km)", min_value=0.0, step=0.5, key="minibus_l100km")
+    elif mode == "Private car":
+        with a:
+            st.number_input("Car journey cost / passenger (R)", min_value=0.0, step=25.0, key="alt_fare_car")
+            st.number_input("Car seats / capacity", min_value=1, step=1, key="car_capacity")
+            st.slider("Average seat occupancy (%)", 1, 100, step=1, key="car_occ")
+        with b:
+            st.number_input("Transfers / other passenger cost (R)", min_value=0.0, step=10.0, key="alt_transfer_car")
+            st.number_input("Car fuel use (L/100 km)", min_value=0.0, step=0.5, key="car_l100km")
+    elif mode == "Air":
+        with a:
+            st.number_input("Air fare / passenger (R)", min_value=0.0, step=50.0, key="alt_fare_air")
+        with b:
+            st.number_input("Airport transfers / other cost (R)", min_value=0.0, step=25.0, key="alt_transfer_air")
+            st.number_input("Air emissions (kg CO₂e/passenger-km)", min_value=0.0, step=0.01, format="%.3f", key="air_co2_per_pax_km")
+    else:
+        with a:
+            st.number_input("Alternative cost / passenger (R)", min_value=0.0, step=25.0, key="alt_fare_custom")
+            st.number_input("Other passenger cost (R)", min_value=0.0, step=10.0, key="alt_transfer_custom")
+        with b:
+            st.number_input("Alternative emissions (kg CO₂e/passenger-km)", min_value=0.0, step=0.01, format="%.3f", key="custom_co2_per_pax_km")
+
+    st.markdown("#### Rail emissions baseline")
+    a, b, c = st.columns(3)
+    with a:
+        st.number_input("Diesel CO₂e (kg/litre)", min_value=0.0, step=0.01, format="%.2f", key="diesel_co2_per_litre")
+    with b:
+        st.number_input("Electric train energy (kWh/train-km)", min_value=0.0, step=1.0, key="electric_kwh_per_train_km")
+    with c:
+        st.number_input("Grid CO₂e (kg/kWh)", min_value=0.0, step=0.01, format="%.2f", key="grid_co2_per_kwh")
+    st.caption(
+        "Diesel locomotive emissions use the existing loco fuel-consumption input. Electric emissions use "
+        "kWh/train-km × the grid factor. All factors are editable planning assumptions."
+    )
+
+    st.markdown("#### Carbon value & wider economic activity")
+    a, b, c = st.columns(3)
+    with a:
+        st.number_input("Carbon value (R/tonne CO₂e)", min_value=0.0, step=100.0, key="carbon_value")
+    with b:
+        st.number_input("Associated spend / passenger (R)", min_value=0.0, step=50.0, key="associated_spend_per_pax")
+    with c:
+        st.number_input("Economic activity multiplier", min_value=1.0, max_value=5.0, step=0.05, format="%.2f", key="economic_multiplier")
+    st.caption(
+        "Associated passenger spend × multiplier estimates economic activity supported. It is not added to "
+        "passenger savings or carbon benefit because that could overstate economic welfare benefits."
+    )
+
 d = current_inputs(service)
 r = calculate(d)
 
@@ -461,6 +657,89 @@ a, b, c = st.columns(3)
 a.metric("Revenue / passenger", money(r["revenue_per_pax"]), delta=f"Cost {money(r['variable_cost_per_pax'])}")
 b.metric("Required revenue uplift", pct(r["required_uplift"]))
 c.metric("Annual contribution", money(r["annual_contribution"]))
+
+# -------------------------------------------------------------------
+# ECONOMIC IMPACT DASHBOARD
+# -------------------------------------------------------------------
+st.divider()
+st.subheader("Economic & Environmental Impact")
+st.caption(
+    f"Comparison with **{r['alt_mode']}** using the assumptions in the Economic Impact tab. "
+    "Financial and carbon benefits are incremental; wider economic activity is reported separately."
+)
+
+a, b, c, dcol = st.columns(4)
+a.metric("MLPS avg ticket fare", money(r["avg_ticket_fare"]))
+b.metric("Alternative cost / passenger", money(r["alternative_cost_per_pax"]))
+c.metric(
+    "Passenger saving / passenger",
+    money(r["passenger_saving_per_pax"]),
+    delta="MLPS cheaper" if r["passenger_saving_per_pax"] >= 0 else "MLPS more expensive"
+)
+dcol.metric("Total passenger financial benefit", money(r["passenger_financial_benefit"]))
+
+a, b, c, dcol = st.columns(4)
+a.metric("MLPS CO₂e / departure", f"{r['train_co2_kg']/1000:,.2f} t")
+b.metric(f"{r['alt_mode']} CO₂e", f"{r['alternative_co2_kg']/1000:,.2f} t")
+c.metric("CO₂e saving / departure", f"{r['co2_saving_tonnes']:,.2f} t")
+dcol.metric("Emissions reduction", f"{r['emissions_reduction']*100:,.1f}%")
+
+a, b, c, dcol = st.columns(4)
+a.metric("MLPS kg CO₂e / pax-km", f"{r['train_co2_per_pax_km']:.3f}")
+b.metric(f"{r['alt_mode']} kg CO₂e / pax-km", f"{r['alternative_co2_per_pax_km']:.3f}")
+c.metric("Monetised carbon benefit", money(r["carbon_benefit"]))
+dcol.metric("Measurable incremental benefit", money(r["measurable_incremental_benefit"]))
+
+if r["co2_saving_kg"] >= 0:
+    st.markdown(
+        f'<div class="good">✓ This scenario emits approximately {r["emissions_reduction"]*100:,.1f}% less CO₂e than the selected alternative.</div>',
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown(
+        f'<div class="warn">⚠ This scenario emits approximately {abs(r["emissions_reduction"])*100:,.1f}% more CO₂e than the selected alternative. Occupancy and traction mix matter.</div>',
+        unsafe_allow_html=True
+    )
+
+st.markdown("#### Wider economic activity supported")
+a, b, c = st.columns(3)
+a.metric("Direct associated activity", money(r["direct_economic_activity"]))
+b.metric("Indirect / induced multiplier effect", money(r["multiplier_effect"]))
+c.metric("Total economic activity supported", money(r["total_economic_activity"]))
+
+if r["operating_support"] > 0:
+    a, b, c = st.columns(3)
+    a.metric("Operating support required", money(r["operating_support"]))
+    b.metric(
+        "Incremental benefit / R1 support",
+        f"{r['economic_benefit_per_support']:.2f}×" if r["economic_benefit_per_support"] is not None else "—"
+    )
+    c.metric(
+        "Economic activity / R1 support",
+        f"{r['activity_per_support']:.2f}×" if r["activity_per_support"] is not None else "—"
+    )
+else:
+    st.success(
+        "This scenario covers variable operating cost, so no operating support is required at the variable-cost level. "
+        "Economic impact is therefore shown without a support-leverage ratio."
+    )
+
+impact_df = pd.DataFrame({
+    "Measure": ["MLPS", r["alt_mode"]],
+    "kg CO₂e / passenger-km": [r["train_co2_per_pax_km"], r["alternative_co2_per_pax_km"]]
+}).set_index("Measure")
+st.markdown("#### Emissions intensity comparison")
+st.bar_chart(impact_df)
+
+with st.expander("Methodology & interpretation"):
+    st.markdown(
+        "**Passenger financial benefit** compares the selected alternative's passenger journey cost with the weighted "
+        "MLPS realised ticket fare. **Carbon benefit** monetises the difference in CO₂e using the selected carbon value. "
+        "Their sum is labelled measurable incremental benefit. **Economic activity supported** instead estimates the "
+        "direct passenger-associated expenditure and its indirect/induced multiplier effect; it is deliberately not added "
+        "to incremental benefit. Road-mode emissions estimate the number of vehicles needed to carry the same passengers "
+        "at the selected occupancy. Rail emissions reflect the current diesel/electric route split."
+    )
 
 # -------------------------------------------------------------------
 # SENSITIVITY ANALYSIS
