@@ -394,7 +394,7 @@ st.markdown("""
     </div>
     <div>
         <h2 style="margin:0">LDPT Service Viability Model</h2>
-        <div class="small">Standalone Python decision-support model</div>
+        <div class="small">A LDPT Rail Service Costing and Benefit Scenario Model for use in Service Planning</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
