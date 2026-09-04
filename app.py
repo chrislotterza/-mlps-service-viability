@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 st.set_page_config(
-    page_title="PRASA LDPT Service Viability",
+    page_title="MLPS Service Viability",
     page_icon="🚆",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,7 +34,12 @@ div[data-testid="stMetric"] {
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# LDPT Model
+# WORKING SERVICE DEFAULTS
+# - Economy coach: 66 seats
+# - Sleeper coach: 24 berths
+# - Baseline operation: 1 departure/month, 1 month/year
+# - Johannesburg–Durban distance: 730 km
+# - Electric share is editable; diesel = 100% - electric share
 # -------------------------------------------------------------------
 SERVICES = {
     "Trans-Karoo": dict(
@@ -126,24 +131,24 @@ ECON_DEFAULTS = {
 
     # Emissions / vehicle assumptions
     "diesel_co2_per_litre": 2.68,
-    "grid_co2_per_kwh": 0.85,
-    "electric_kwh_per_train_km": 18.0,
+    "grid_co2_per_kwh": 1.05,
+    "electric_kwh_per_train_km": 22.0,
     "coach_capacity": 60,
     "coach_occ": 70,
     "coach_l100km": 30.0,
-    "minibus_capacity": 15,
+    "minibus_capacity": 14,
     "minibus_occ": 80,
-    "minibus_l100km": 12.0,
+    "minibus_l100km": 10.0,
     "car_capacity": 5,
     "car_occ": 40,
-    "car_l100km": 8.0,
-    "air_co2_per_pax_km": 0.15,
+    "car_l100km": 7.5,
+    "air_co2_per_pax_km": 0.126,
     "custom_co2_per_pax_km": 0.08,
-    "carbon_value": 1200.0,
+    "carbon_value": 308.0,
 
     # Wider economic activity assumptions
-    "associated_spend_per_pax": 750.0,
-    "economic_multiplier": 1.40,
+    "associated_spend_per_pax": 500.0,
+    "economic_multiplier": 1.30,
 }
 
 def money(x): return f"R {x:,.0f}"
@@ -263,8 +268,8 @@ def calculate(d):
 
     diesel_litres = diesel_km * d["locos"] * d["diesel_consumption"]
     train_diesel_co2_kg = diesel_litres * d.get("diesel_co2_per_litre", 2.68)
-    train_electric_kwh = electric_km * d.get("electric_kwh_per_train_km", 18.0)
-    train_electric_co2_kg = train_electric_kwh * d.get("grid_co2_per_kwh", 0.85)
+    train_electric_kwh = electric_km * d.get("electric_kwh_per_train_km", 22.0)
+    train_electric_co2_kg = train_electric_kwh * d.get("grid_co2_per_kwh", 1.05)
     train_co2_kg = train_diesel_co2_kg + train_electric_co2_kg
     train_co2_per_pax_km = train_co2_kg / (passengers * d["distance"]) if passengers and d["distance"] else 0
 
@@ -388,7 +393,7 @@ st.markdown("""
              style="height:68px;max-width:220px;object-fit:contain;">
     </div>
     <div>
-        <h2 style="margin:0">LDPT Service Viability Model</h2>
+        <h2 style="margin:0">MLPS Service Viability Model</h2>
         <div class="small">Standalone Python decision-support model</div>
     </div>
 </div>
@@ -407,14 +412,18 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("LDPT Model")
+    st.caption("Baseline: 1 departure/month and 1 month/year.")
+    st.caption("Economy coach: 66 seats.")
+    st.caption("Sleeper coach: 24 berths.")
+    st.caption("Electric + diesel shares always sum to 100%.")
 
-t1, t2, t3, t4, t5 = st.tabs([
+t1, t2, t3, t4, t5, t6 = st.tabs([
     "🚆 Service & Train",
     "🎟 Fares & Demand",
     "⚡ Traction & Access",
     "🧾 Costs",
-    "🌍 Economic Impact"
+    "🌍 Economic Impact",
+    "📘 How the Model Works"
 ])
 
 with t1:
@@ -569,6 +578,529 @@ with t5:
     st.caption(
         "Associated passenger spend × multiplier estimates economic activity supported. It is not added to "
         "passenger savings or carbon benefit because that could overstate economic welfare benefits."
+    )
+
+    with st.expander("Baseline assumptions & evidence notes"):
+        st.markdown("""
+**Recommended baseline interpretation**
+
+- **Diesel:** 2.68 kg CO₂/litre — standard combustion-factor approximation.
+- **Electricity:** 1.05 kg CO₂/kWh — conservative South African baseline derived from Eskom's reported emissions and power sent out.
+- **Electric train energy:** 22 kWh/train-km — engineering planning assumption for a locomotive-hauled intercity train; replace with metered traction-energy data when available.
+- **Intercity coach:** 60 seats, 70% occupancy, 30 L/100 km — planning baseline; sensitivity-test occupancy and fuel use.
+- **Minibus taxi:** 14 seats, 80% occupancy, 10 L/100 km — representative Quantum-class diesel planning assumption; actual fleet performance will vary.
+- **Private car:** 5 seats, 40% seat occupancy (2 persons), 7.5 L/100 km — representative long-distance planning assumption.
+- **Air:** 0.126 kg CO₂e/passenger-km — indicative short-haul economy proxy.
+- **Carbon value:** R308/tCO₂e — 2026 headline South African carbon-tax rate. This is a policy price, not a full social cost of carbon.
+- **Associated spend:** R500/passenger and **multiplier 1.30** — deliberately conservative placeholders. They should not be described as incremental welfare benefits and should be replaced with route-specific evidence and a South African SAM/input-output multiplier for formal appraisal.
+
+The model is intentionally conservative: it can show **negative emissions savings** where a low-occupancy train performs worse than the selected alternative.
+        """)
+
+with t6:
+    st.markdown("# How the MLPS Service Viability Model Works")
+    st.markdown(
+        """
+This model is a **scenario-based decision-support tool** for testing whether an MLPS passenger service can cover its
+**avoidable / variable operating costs**, how far it is from break-even when it cannot, and what wider passenger,
+environmental and economic effects may be associated with operating the service.
+
+It is deliberately designed as an **interactive operating model**, rather than a fixed forecast. Each service begins with
+a set of working assumptions, but the user can change train composition, fares, occupancy, traction, access charges,
+fuel prices, maintenance costs, operating frequency and economic-impact assumptions and immediately see how the result changes.
+
+The model keeps three questions separate:
+
+1. **Financial viability:** does the service recover its variable operating cost?
+2. **Incremental economic and environmental benefit:** are passengers financially better off and are emissions lower than a selected alternative mode?
+3. **Wider economic activity supported:** how much direct and multiplier-related activity may be associated with passengers making the trip?
+
+The third measure is **not added** to the first two economic-benefit measures. This is intentional and avoids presenting
+wider economic activity as if it were automatically an incremental welfare benefit.
+        """
+    )
+
+    st.markdown("## 1. Scenario selection and operating period")
+    st.markdown(
+        """
+The sidebar selects the service to be analysed. Each named service has its own default route, consist, fares, occupancy,
+traction and cost assumptions. Selecting **Custom** allows the same calculation structure to be used for another corridor.
+
+The model is calculated first on a **one-way departure basis**. Monthly and annual results are then derived from the selected
+number of one-way departures per month and the number of months operated per year. The current starting convention is
+**1 one-way departure per month and 1 operating month per year**, so frequency can be scaled explicitly rather than being
+hidden in the model.
+
+A departure is therefore one train movement over the entered one-way route distance. If the user wants to represent a
+return service, both directions must be reflected in the number of departures.
+        """
+    )
+
+    st.markdown("## 2. Train composition and sellable capacity")
+    st.markdown(
+        """
+The train is built from four physical inputs:
+
+- number of locomotives;
+- number of economy coaches;
+- number of sleeper coaches; and
+- other coaches / vans that add mass and operating cost but do not create sellable passenger capacity in the current model.
+
+The default capacity conventions are **66 seats per economy coach** and **24 berths per sleeper coach**. These remain editable.
+
+**Sellable capacity** is calculated as:
+
+`Economy coaches × economy seats per coach + sleeper coaches × sleeper berths per coach`
+
+Other coaches are excluded from sellable capacity because they are treated as non-revenue vehicles. They still contribute
+to total train mass and coach maintenance cost.
+
+The entered coach and locomotive masses are used to estimate the tare mass of the consist. This mass is important for the
+electric-traction calculation, which is expressed using gross-tonne-kilometres on the electrified section of the route.
+        """
+    )
+
+    st.markdown("## 3. Passenger demand and occupancy")
+    st.markdown(
+        """
+Economy and sleeper demand are modelled separately. For each accommodation type, passengers are estimated as:
+
+`Number of coaches × capacity per coach × occupancy`
+
+Total passengers are the sum of economy and sleeper passengers.
+
+The model therefore treats **occupancy as a core commercial and environmental variable**. Increasing occupancy raises fare
+and ancillary revenue without adding another coach or locomotive, while most train-running costs remain unchanged. It also
+reduces rail emissions per passenger-kilometre because the same train movement is shared across more passengers.
+
+The dashboard also reports a combined current occupancy:
+
+`Total passengers ÷ total sellable capacity`
+
+This combined measure is useful for the headline dashboard, while the model still retains separate economy and sleeper
+occupancies for revenue estimation.
+        """
+    )
+
+    st.markdown("## 4. Revenue calculation")
+    st.markdown(
+        """
+Passenger revenue is based on the **realised fare**, rather than a published headline fare. This allows the input to represent
+the average revenue actually received after discounts, concessions or product mix.
+
+Economy and sleeper revenue are calculated separately:
+
+`Economy passengers × economy realised fare`
+
+plus
+
+`Sleeper passengers × sleeper realised fare`
+
+The model then adds **ancillary net revenue per passenger**. This can represent net on-board retail, catering, baggage or
+other passenger-related revenue where appropriate.
+
+Total revenue per departure is therefore:
+
+`Passenger fare revenue + ancillary net revenue`
+
+The dashboard also derives average revenue per passenger for break-even analysis.
+        """
+    )
+
+    st.markdown("## 5. Access and traction")
+    st.markdown(
+        """
+The route can be split between **electric and diesel traction**. The user enters the electric share as a percentage; the model
+automatically treats the balance as diesel, ensuring that electric and diesel shares always sum to 100%.
+
+### Access cost
+Access cost is currently modelled as:
+
+`Route distance × TRIM access fee per train-km`
+
+This means the access charge is applied once to each one-way train movement.
+
+### Electric traction cost
+For the electric section, the model first calculates electrified kilometres and train gross-tonne-kilometres:
+
+`Train tare mass × electric route km`
+
+Electric traction cost is then:
+
+`Electric GTK × electric traction rate (R/GTK)`
+
+### Diesel traction cost
+For the diesel section, fuel consumption is based on locomotive-kilometres:
+
+`Diesel route km × locomotives × litres per loco-km × diesel price per litre`
+
+The model therefore allows a service to be fully electric, fully diesel or any blended traction share. Changing the traction
+mix affects both the operating-cost result and the emissions result.
+        """
+    )
+
+    st.markdown("## 6. Variable operating cost")
+    st.markdown(
+        """
+The main financial test is **variable-cost recovery**. Variable cost represents expenditure that is treated as associated with
+running the selected departure. The current cost stack is:
+
+- infrastructure access charge;
+- electric traction cost;
+- diesel fuel cost;
+- locomotive variable maintenance;
+- coach variable maintenance;
+- train crew per departure;
+- shunting / terminal cost per departure;
+- on-board variable cost per passenger;
+- ticketing / collection cost as a percentage of revenue; and
+- an operating contingency applied to the calculated base variable cost.
+
+Locomotive maintenance is calculated using locomotive-kilometres:
+
+`Distance × locomotives × loco maintenance rate`
+
+Coach maintenance is calculated using coach-kilometres:
+
+`Distance × total coaches × coach maintenance rate`
+
+On-board cost changes directly with passengers. Ticketing / collection cost changes with revenue. Crew, shunting, access,
+traction and maintenance are primarily train-running costs and therefore do not fall simply because occupancy falls.
+
+The contingency percentage is applied after the above base variable costs have been calculated. It is intended to give the
+user an explicit allowance for operating uncertainty rather than embedding an unexplained buffer in individual cost lines.
+        """
+    )
+
+    st.markdown("## 7. Contribution and variable-cost recovery")
+    st.markdown(
+        """
+The model's central financial result is:
+
+`Contribution per departure = total revenue − variable operating cost`
+
+A positive contribution means the service covers the modelled variable cost of operating the departure. A negative
+contribution is shown as the **operating support required** at the variable-cost level.
+
+Variable-cost recovery is:
+
+`Revenue ÷ variable operating cost`
+
+Interpretation:
+
+- **100% or more:** variable break-even is achieved;
+- **90%–99.9%:** the dashboard identifies the service as close to variable break-even;
+- **below 90%:** the service is materially below variable break-even on the current assumptions.
+
+This is deliberately not the same as accounting profit. It is a service-operating test intended to answer whether the
+additional train movement generates enough revenue to cover the costs treated as avoidable / variable in the model.
+        """
+    )
+
+    st.markdown("## 8. Break-even passengers and occupancy")
+    st.markdown(
+        """
+The model estimates how many passengers would be required for revenue to cover variable cost, given the current fare and cost
+structure. The calculation separates relatively fixed train-running costs from passenger-related variable costs.
+
+The break-even calculation uses:
+
+- average revenue per passenger;
+- on-board variable cost per passenger;
+- ticketing cost as a share of revenue;
+- contingency; and
+- the train-running cost that exists before passenger-related costs.
+
+The result is converted into a **break-even occupancy** by dividing break-even passengers by sellable capacity.
+
+This is one of the most useful management indicators in the model. It allows the user to ask, for example, whether a service
+needs 55%, 80% or more than 100% occupancy to cover its variable cost. A required occupancy above practical capacity is an
+immediate signal that fare, consist, access, traction or other cost assumptions must change; demand growth alone cannot solve
+the problem.
+        """
+    )
+
+    st.markdown("## 9. Full-cost view")
+    st.markdown(
+        """
+The main dashboard focuses on variable cost, but the model also provides a separate **full-cost view**. It allocates two
+monthly fixed-cost inputs to each departure:
+
+- locomotive lease / hire cost; and
+- route / station fixed cost.
+
+The allocation is:
+
+`Monthly fixed cost ÷ departures per month`
+
+This amount is added to variable cost to produce full cost per departure and a corresponding full-cost recovery ratio.
+
+This distinction matters. A service can cover its variable cost and still fail to recover lease or route-level fixed cost.
+Conversely, a service below full-cost recovery may still be rational to operate if the fixed costs would be incurred anyway
+and the train makes a positive contribution toward them.
+        """
+    )
+
+    st.markdown("## 10. Monthly and annual scaling")
+    st.markdown(
+        """
+Once contribution per departure has been calculated, the model scales the result using the operating plan:
+
+`Monthly contribution = contribution per departure × one-way departures per month`
+
+`Annual contribution = monthly contribution × months operated per year`
+
+This makes frequency an explicit scenario variable. It also means the user should ensure that the frequency convention is
+applied consistently. If both outbound and inbound train movements are being modelled, each one-way movement should be
+represented in the departure count.
+        """
+    )
+
+    st.markdown("## 11. Alternative-mode passenger financial benefit")
+    st.markdown(
+        """
+The Economic Impact section compares MLPS with a selected alternative mode: **intercity coach, minibus taxi, private car, air,
+or a custom comparator**.
+
+The comparator is intentionally editable because the realistic alternative differs by corridor and passenger market. The
+model combines the entered alternative fare / journey cost with any transfer or other passenger cost.
+
+The MLPS comparison uses the weighted realised MLPS fare, excluding ancillary revenue, because the purpose is to compare the
+passenger's transport cost.
+
+`Passenger saving per passenger = alternative passenger cost − MLPS average ticket fare`
+
+`Total passenger financial benefit = saving per passenger × MLPS passengers`
+
+A positive number means MLPS is cheaper for the passengers carried in the scenario. A negative number means the selected
+alternative is cheaper.
+
+This is a **financial saving measure**, not a full consumer-surplus calculation. It does not currently value differences in
+journey time, comfort, reliability, safety, schedule convenience or willingness to pay.
+        """
+    )
+
+    st.markdown("## 12. Rail emissions calculation")
+    st.markdown(
+        """
+Rail emissions are estimated separately for the diesel and electric sections of the route.
+
+### Diesel section
+Diesel litres are calculated from:
+
+`Diesel route km × locomotives × litres per loco-km`
+
+CO₂e is then:
+
+`Diesel litres × kg CO₂e per litre`
+
+### Electric section
+Electric energy is estimated from:
+
+`Electric route km × kWh per train-km`
+
+CO₂e is then:
+
+`Electric kWh × grid kg CO₂e per kWh`
+
+Total rail CO₂e is the sum of diesel and electric emissions. The model then divides this by passenger-kilometres to produce:
+
+`kg CO₂e per passenger-km`
+
+Because total train emissions are spread over actual passengers, occupancy has a direct effect on emissions intensity. A
+lightly loaded train can therefore perform worse per passenger than a well-loaded road alternative.
+        """
+    )
+
+    st.markdown("## 13. Alternative-mode emissions")
+    st.markdown(
+        """
+For road alternatives, the model estimates how many vehicles are needed to carry the same number of passengers as the MLPS
+scenario. Effective vehicle capacity is:
+
+`Vehicle capacity × assumed occupancy`
+
+The model then estimates vehicle fuel consumption over the same route distance and converts that fuel into CO₂e. This is
+used for intercity coach, minibus taxi and private-car comparisons.
+
+For air and the custom comparator, emissions are entered directly as **kg CO₂e per passenger-km** and multiplied by passenger
+kilometres.
+
+The comparison therefore asks a consistent question: **what would the emissions be if the passengers carried by this MLPS
+train made the same trip using the selected alternative?**
+        """
+    )
+
+    st.markdown("## 14. Emissions saving and carbon value")
+    st.markdown(
+        """
+Emissions saving is:
+
+`Alternative CO₂e − MLPS CO₂e`
+
+A positive result indicates that MLPS emits less. A negative result is retained and displayed as a warning; the model does
+not force rail to appear environmentally superior.
+
+The percentage reduction is measured against the alternative-mode emissions baseline.
+
+The model can also monetise the emissions difference:
+
+`CO₂e saving in tonnes × selected carbon value per tonne`
+
+The current carbon value is an editable policy / appraisal input. It should not automatically be interpreted as the full
+social cost of carbon.
+        """
+    )
+
+    st.markdown("## 15. Measurable incremental economic benefit")
+    st.markdown(
+        """
+The model combines two directly modelled incremental effects:
+
+`Passenger financial benefit + monetised carbon benefit`
+
+This is labelled **measurable incremental benefit**.
+
+The term is intentionally narrower than "total economic benefit". The model does not currently attempt to monetise all
+possible transport benefits such as time savings, reliability, safety, accessibility, labour-market effects, option value,
+road decongestion or infrastructure wear. These could be added later if suitable evidence and appraisal parameters are
+available.
+        """
+    )
+
+    st.markdown("## 16. Wider economic activity supported")
+    st.markdown(
+        """
+The model separately provides an indicative measure of the economic activity associated with passengers undertaking the trip.
+
+Direct associated activity is:
+
+`Passengers × associated spend per passenger`
+
+Total economic activity supported is:
+
+`Direct associated activity × economic activity multiplier`
+
+The difference between the two is shown as the indirect / induced multiplier effect.
+
+This measure is best interpreted as **economic activity associated with or facilitated by the transport service**, not as
+an incremental welfare benefit created entirely by MLPS. Some passenger expenditure may have occurred elsewhere in the
+absence of the train, and multiplier estimates can overlap with other measures if used carelessly. For this reason, the model
+reports wider economic activity separately and deliberately does **not** add it to passenger financial savings and carbon benefit.
+        """
+    )
+
+    st.markdown("## 17. Economic leverage relative to operating support")
+    st.markdown(
+        """
+Where the service does not cover its variable cost, the shortfall is treated as the **operating support required** for the
+selected departure. The model then provides two different leverage indicators:
+
+`Measurable incremental benefit ÷ operating support`
+
+and
+`Total economic activity supported ÷ operating support`
+
+These answer different questions and should not be confused. The first compares a narrow set of incremental benefits with the
+financial shortfall. The second shows the scale of wider activity associated with each rand of support.
+
+Where variable break-even is achieved, the support denominator is zero and the model intentionally suppresses these ratios
+rather than presenting an infinite or misleading value.
+        """
+    )
+
+    st.markdown("## 18. Sensitivity analysis")
+    st.markdown(
+        """
+The sensitivity table changes **one assumption at a time** while keeping all other current inputs constant. The standard tests
+currently include:
+
+- +10 percentage points economy occupancy;
+- +10 percentage points sleeper occupancy;
+- +10% economy fare;
+- +10% sleeper fare;
+- −10% access fee;
+- −10% diesel price;
+- −10% electric traction rate;
+- −10% on-board variable cost;
+- −10% coach maintenance; and
+- −10% crew cost.
+
+Each test reports the resulting recovery ratio, change in recovery, contribution, change in contribution and break-even
+occupancy. The table is sorted by improvement in contribution, so the strongest of these standard one-at-a-time levers appears
+first.
+
+Sensitivity analysis is not a forecast of what will happen. It is a diagnostic tool showing **which assumptions have the most
+financial leverage around the current scenario**.
+        """
+    )
+
+    st.markdown("## 19. How to use the model in practice")
+    st.markdown(
+        """
+A recommended workflow is:
+
+1. **Select the corridor** and confirm the one-way distance.
+2. **Build the likely train consist** and check sellable capacity and train mass.
+3. **Set realistic occupancy** separately for economy and sleeper accommodation.
+4. Enter the **realised fares** expected to be achieved, not simply aspirational published fares.
+5. Confirm the **electric/diesel route split**, access charge, diesel price and traction assumptions.
+6. Update variable maintenance, crew, terminal, on-board and ticketing costs with the best available operating evidence.
+7. Review **variable-cost recovery, contribution and break-even occupancy** before looking at the wider economic case.
+8. Select the **realistic alternative transport mode** for the corridor and use route-specific fare, occupancy, fuel and emissions assumptions where available.
+9. Review passenger saving and CO₂e comparison. A negative result should be treated as information, not overridden.
+10. Use the wider economic-activity result as contextual evidence, keeping it separate from incremental economic benefit.
+11. Run the sensitivity analysis to identify the assumptions that matter most and therefore deserve the strongest evidence or management attention.
+12. Save or document the final assumption set when using results in submissions so that the scenario can be reproduced.
+        """
+    )
+
+    st.markdown("## 20. Interpretation and limitations")
+    st.warning(
+        "This is a decision-support model, not a certified tariff model, audited financial forecast, engineering simulation "
+        "or full economic cost-benefit analysis. Its outputs are only as robust as the assumptions entered."
+    )
+    st.markdown(
+        """
+Key limitations to keep in mind:
+
+- Costs are simplified into modelled variable and fixed categories; actual avoidability depends on contractual and operating arrangements.
+- The access-fee calculation assumes a linear R/train-km charge.
+- Electric traction cost and electric emissions use different engineering representations: the cost side uses GTK and the emissions side uses kWh/train-km. Both require route- and locomotive-specific validation for formal use.
+- Train mass is a tare-mass approximation and does not currently add passenger, luggage, catering stock, water or fuel mass.
+- Demand is represented through occupancy assumptions; the model does not forecast demand from price, timetable frequency or service quality.
+- Revenue does not currently model product-specific discounts, cancellations, no-shows, revenue leakage or directional imbalance separately.
+- Break-even assumes the current revenue mix remains broadly applicable as passenger numbers change.
+- The alternative-mode financial comparison is a passenger cash-cost comparison, not a full generalised-cost or consumer-surplus model.
+- Road emissions depend strongly on assumed vehicle occupancy and fuel consumption.
+- Electric emissions depend strongly on the South African grid factor and the assumed kWh/train-km.
+- Air emissions are represented by a passenger-kilometre factor rather than a detailed flight model.
+- The carbon value is an appraisal / policy assumption and does not represent all environmental externalities.
+- The economic-activity multiplier is an indicative scenario input and should be replaced with a suitable South African SAM / input-output estimate for formal economic appraisal.
+- The model does not currently monetise travel-time, safety, reliability, road congestion, road maintenance, accessibility or regional-development benefits.
+- Outputs should therefore be presented as **scenario estimates**, with the major assumptions disclosed.
+        """
+    )
+
+    st.markdown("## 21. Current scenario snapshot")
+    st.caption("This summary updates automatically from the assumptions entered in the other tabs.")
+    methodology_snapshot = calculate(current_inputs(service))
+    a, b, c, dcol = st.columns(4)
+    a.metric("Route distance", f"{methodology_snapshot['d']['distance']:,.0f} km")
+    b.metric("Passengers / departure", n0(methodology_snapshot["passengers"]))
+    c.metric("Variable cost recovery", pct(methodology_snapshot["recovery"]))
+    dcol.metric("Break-even occupancy", pct(methodology_snapshot["break_even_occ"]))
+
+    a, b, c, dcol = st.columns(4)
+    a.metric("Contribution / departure", money(methodology_snapshot["contribution"]))
+    b.metric("MLPS CO₂e / departure", f"{methodology_snapshot['train_co2_kg']/1000:,.2f} t")
+    c.metric("CO₂e saving vs alternative", f"{methodology_snapshot['co2_saving_tonnes']:,.2f} t")
+    dcol.metric("Incremental economic benefit", money(methodology_snapshot["measurable_incremental_benefit"]))
+
+    st.info(
+        "For formal use, the strongest version of the model will be one where each material input is supported by a "
+        "PRASA, Transnet/TRIM, supplier, metered-energy, market-fare or recognised economic-appraisal source and the "
+        "assumption set is retained with the scenario output."
     )
 
 d = current_inputs(service)
