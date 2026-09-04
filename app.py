@@ -388,7 +388,7 @@ st.markdown("""
              style="height:68px;max-width:220px;object-fit:contain;">
     </div>
     <div>
-        <h2 style="margin:0">MLPS Service Viability Model</h2>
+        <h2 style="margin:0">LDPT Service Viability Model</h2>
         <div class="small">Standalone Python decision-support model</div>
     </div>
 </div>
