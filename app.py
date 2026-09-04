@@ -408,7 +408,7 @@ st.markdown("""
     </div>
     <div>
         <h2 style="margin:0">LDPT Service Viability Model</h2>
-        <div class="small">Standalone Python decision-support model</div>
+        <div class="small">A long distance rail service cost and benefit decision-support model</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -426,10 +426,8 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("Baseline: 1 departure/month and 1 month/year.")
-    st.caption("Economy coach: 66 seats.")
-    st.caption("Sleeper coach: 24 berths.")
-    st.caption("Electric + diesel shares always sum to 100%.")
+    st.caption("All models are wrong, but some are useful - george Box")
+    st.caption("Please check your assumptions")
 
 # Seed any newly introduced economic-impact keys without overwriting the user's
 # existing session values. This prevents KeyError after app updates and ensures
