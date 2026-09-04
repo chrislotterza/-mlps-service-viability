@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 st.set_page_config(
-    page_title="MLPS Service Viability",
+    page_title="PRASA LDPT Service Viability",
     page_icon="🚆",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,12 +34,7 @@ div[data-testid="stMetric"] {
 """, unsafe_allow_html=True)
 
 # -------------------------------------------------------------------
-# WORKING SERVICE DEFAULTS
-# - Economy coach: 66 seats
-# - Sleeper coach: 24 berths
-# - Baseline operation: 1 departure/month, 1 month/year
-# - Johannesburg–Durban distance: 730 km
-# - Electric share is editable; diesel = 100% - electric share
+# LDPT Model
 # -------------------------------------------------------------------
 SERVICES = {
     "Trans-Karoo": dict(
