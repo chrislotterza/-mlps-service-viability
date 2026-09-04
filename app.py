@@ -412,7 +412,7 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("A Long Distance Passenger Transport Rail Service Costing and Benefit Model"
+    st.caption("A Long Distance Passenger Transport Rail Service Costing and Benefit Model")
 
 t1, t2, t3, t4, t5, t6 = st.tabs([
     "🚆 Service & Train",
