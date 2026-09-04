@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 st.set_page_config(
-    page_title="MLPS Service Viability",
+    page_title="LDPT Service Viability",
     page_icon="🚆",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -393,7 +393,7 @@ st.markdown("""
              style="height:68px;max-width:220px;object-fit:contain;">
     </div>
     <div>
-        <h2 style="margin:0">MLPS Service Viability Model</h2>
+        <h2 style="margin:0">LDPT Service Viability Model</h2>
         <div class="small">Standalone Python decision-support model</div>
     </div>
 </div>
@@ -412,10 +412,7 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    st.caption("Baseline: 1 departure/month and 1 month/year.")
-    st.caption("Economy coach: 66 seats.")
-    st.caption("Sleeper coach: 24 berths.")
-    st.caption("Electric + diesel shares always sum to 100%.")
+    st.caption("A Long Distance Passenger Transport Rail Service Costing and Benefit Model"
 
 t1, t2, t3, t4, t5, t6 = st.tabs([
     "🚆 Service & Train",
@@ -598,10 +595,10 @@ The model is intentionally conservative: it can show **negative emissions saving
         """)
 
 with t6:
-    st.markdown("# How the MLPS Service Viability Model Works")
+    st.markdown("# How the LDPT Service Viability Model Works")
     st.markdown(
         """
-This model is a **scenario-based decision-support tool** for testing whether an MLPS passenger service can cover its
+This model is a **scenario-based decision-support tool** for testing whether an LDPT passenger service can cover its
 **avoidable / variable operating costs**, how far it is from break-even when it cannot, and what wider passenger,
 environmental and economic effects may be associated with operating the service.
 
@@ -859,20 +856,20 @@ represented in the departure count.
     st.markdown("## 11. Alternative-mode passenger financial benefit")
     st.markdown(
         """
-The Economic Impact section compares MLPS with a selected alternative mode: **intercity coach, minibus taxi, private car, air,
+The Economic Impact section compares LDPT with a selected alternative mode: **intercity coach, minibus taxi, private car, air,
 or a custom comparator**.
 
 The comparator is intentionally editable because the realistic alternative differs by corridor and passenger market. The
 model combines the entered alternative fare / journey cost with any transfer or other passenger cost.
 
-The MLPS comparison uses the weighted realised MLPS fare, excluding ancillary revenue, because the purpose is to compare the
+The LDPT comparison uses the weighted realised LDPT fare, excluding ancillary revenue, because the purpose is to compare the
 passenger's transport cost.
 
-`Passenger saving per passenger = alternative passenger cost − MLPS average ticket fare`
+`Passenger saving per passenger = alternative passenger cost − LDPT average ticket fare`
 
-`Total passenger financial benefit = saving per passenger × MLPS passengers`
+`Total passenger financial benefit = saving per passenger × LDPT passengers`
 
-A positive number means MLPS is cheaper for the passengers carried in the scenario. A negative number means the selected
+A positive number means LDPT is cheaper for the passengers carried in the scenario. A negative number means the selected
 alternative is cheaper.
 
 This is a **financial saving measure**, not a full consumer-surplus calculation. It does not currently value differences in
@@ -915,7 +912,7 @@ lightly loaded train can therefore perform worse per passenger than a well-loade
     st.markdown("## 13. Alternative-mode emissions")
     st.markdown(
         """
-For road alternatives, the model estimates how many vehicles are needed to carry the same number of passengers as the MLPS
+For road alternatives, the model estimates how many vehicles are needed to carry the same number of passengers as the LDPT
 scenario. Effective vehicle capacity is:
 
 `Vehicle capacity × assumed occupancy`
@@ -926,7 +923,7 @@ used for intercity coach, minibus taxi and private-car comparisons.
 For air and the custom comparator, emissions are entered directly as **kg CO₂e per passenger-km** and multiplied by passenger
 kilometres.
 
-The comparison therefore asks a consistent question: **what would the emissions be if the passengers carried by this MLPS
+The comparison therefore asks a consistent question: **what would the emissions be if the passengers carried by this LDPT
 train made the same trip using the selected alternative?**
         """
     )
@@ -936,9 +933,9 @@ train made the same trip using the selected alternative?**
         """
 Emissions saving is:
 
-`Alternative CO₂e − MLPS CO₂e`
+`Alternative CO₂e − LDPT CO₂e`
 
-A positive result indicates that MLPS emits less. A negative result is retained and displayed as a warning; the model does
+A positive result indicates that LDPT emits less. A negative result is retained and displayed as a warning; the model does
 not force rail to appear environmentally superior.
 
 The percentage reduction is measured against the alternative-mode emissions baseline.
@@ -984,7 +981,7 @@ Total economic activity supported is:
 The difference between the two is shown as the indirect / induced multiplier effect.
 
 This measure is best interpreted as **economic activity associated with or facilitated by the transport service**, not as
-an incremental welfare benefit created entirely by MLPS. Some passenger expenditure may have occurred elsewhere in the
+an incremental welfare benefit created entirely by LDPT. Some passenger expenditure may have occurred elsewhere in the
 absence of the train, and multiplier estimates can overlap with other measures if used carelessly. For this reason, the model
 reports wider economic activity separately and deliberately does **not** add it to passenger financial savings and carbon benefit.
         """
@@ -1093,7 +1090,7 @@ Key limitations to keep in mind:
 
     a, b, c, dcol = st.columns(4)
     a.metric("Contribution / departure", money(methodology_snapshot["contribution"]))
-    b.metric("MLPS CO₂e / departure", f"{methodology_snapshot['train_co2_kg']/1000:,.2f} t")
+    b.metric("LDPT CO₂e / departure", f"{methodology_snapshot['train_co2_kg']/1000:,.2f} t")
     c.metric("CO₂e saving vs alternative", f"{methodology_snapshot['co2_saving_tonnes']:,.2f} t")
     dcol.metric("Incremental economic benefit", money(methodology_snapshot["measurable_incremental_benefit"]))
 
@@ -1193,23 +1190,23 @@ st.caption(
 )
 
 a, b, c, dcol = st.columns(4)
-a.metric("MLPS avg ticket fare", money(r["avg_ticket_fare"]))
+a.metric("LDPT avg ticket fare", money(r["avg_ticket_fare"]))
 b.metric("Alternative cost / passenger", money(r["alternative_cost_per_pax"]))
 c.metric(
     "Passenger saving / passenger",
     money(r["passenger_saving_per_pax"]),
-    delta="MLPS cheaper" if r["passenger_saving_per_pax"] >= 0 else "MLPS more expensive"
+    delta="LDPT cheaper" if r["passenger_saving_per_pax"] >= 0 else "LDPT more expensive"
 )
 dcol.metric("Total passenger financial benefit", money(r["passenger_financial_benefit"]))
 
 a, b, c, dcol = st.columns(4)
-a.metric("MLPS CO₂e / departure", f"{r['train_co2_kg']/1000:,.2f} t")
+a.metric("LDPT CO₂e / departure", f"{r['train_co2_kg']/1000:,.2f} t")
 b.metric(f"{r['alt_mode']} CO₂e", f"{r['alternative_co2_kg']/1000:,.2f} t")
 c.metric("CO₂e saving / departure", f"{r['co2_saving_tonnes']:,.2f} t")
 dcol.metric("Emissions reduction", f"{r['emissions_reduction']*100:,.1f}%")
 
 a, b, c, dcol = st.columns(4)
-a.metric("MLPS kg CO₂e / pax-km", f"{r['train_co2_per_pax_km']:.3f}")
+a.metric("LDPT kg CO₂e / pax-km", f"{r['train_co2_per_pax_km']:.3f}")
 b.metric(f"{r['alt_mode']} kg CO₂e / pax-km", f"{r['alternative_co2_per_pax_km']:.3f}")
 c.metric("Monetised carbon benefit", money(r["carbon_benefit"]))
 dcol.metric("Measurable incremental benefit", money(r["measurable_incremental_benefit"]))
@@ -1249,7 +1246,7 @@ else:
     )
 
 impact_df = pd.DataFrame({
-    "Measure": ["MLPS", r["alt_mode"]],
+    "Measure": ["LDPT", r["alt_mode"]],
     "kg CO₂e / passenger-km": [r["train_co2_per_pax_km"], r["alternative_co2_per_pax_km"]]
 }).set_index("Measure")
 st.markdown("#### Emissions intensity comparison")
@@ -1258,7 +1255,7 @@ st.bar_chart(impact_df)
 with st.expander("Methodology & interpretation"):
     st.markdown(
         "**Passenger financial benefit** compares the selected alternative's passenger journey cost with the weighted "
-        "MLPS realised ticket fare. **Carbon benefit** monetises the difference in CO₂e using the selected carbon value. "
+        "LDPT realised ticket fare. **Carbon benefit** monetises the difference in CO₂e using the selected carbon value. "
         "Their sum is labelled measurable incremental benefit. **Economic activity supported** instead estimates the "
         "direct passenger-associated expenditure and its indirect/induced multiplier effect; it is deliberately not added "
         "to incremental benefit. Road-mode emissions estimate the number of vehicles needed to carry the same passengers "
